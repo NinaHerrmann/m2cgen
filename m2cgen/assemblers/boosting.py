@@ -352,6 +352,8 @@ def _split_estimator_params_by_classes(values, n_classes, params_seq_len):
     # https://github.com/dmlc/xgboost/issues/1746#issuecomment-267400592
     # and the enhancement to support boosted forests in XGBoost.
     values_len = len(values)
+    if params_seq_len is None:
+        params_seq_len = 1
     block_len = n_classes * params_seq_len
     indices = list(range(values_len))
     indices_by_class = np.array(
