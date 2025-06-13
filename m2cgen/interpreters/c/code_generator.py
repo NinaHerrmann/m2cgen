@@ -1,10 +1,9 @@
 from contextlib import contextmanager
-
+import re
 from m2cgen.interpreters.code_generator import CLikeCodeGenerator, CodeTemplate
 
 
 class CCodeGenerator(CLikeCodeGenerator):
-
     tpl_scalar_var_declare = CodeTemplate("double {var_name};")
     tpl_vector_var_declare = CodeTemplate("double {var_name}[{size}];")
 
@@ -47,14 +46,26 @@ class CCodeGenerator(CLikeCodeGenerator):
         self.add_assign_array_statement(value, var_name, value_size)
 
     def add_assign_array_statement(self, source_var, target_var, size):
-        self.add_code_line(f"memcpy({target_var}, {source_var}, "
-                           f"{size} * sizeof(double));")
+        if size < 2:
+            matches = re.findall(r'var(\d+)', source_var)
+            self.add_code_line(f"output[0] = var{matches[0]};")
+            exit()
+
+        for i in range(size):
+            matches = re.findall(r'var(\d+)', source_var)
+            self.add_code_line(f"output[{i}] = var{matches[0]}[{i}];")
 
     def add_dependency(self, dep):
         self.prepend_code_line(f"#include {dep}")
 
     def vector_init(self, values):
-        return f"(double[]){{{', '.join(values)}}}"
+        self.add_code_line(f"{self.scalar_type} intermediate{0}[{len(values)}];")
+        counter = 0
+        for v in values:
+            self.add_code_line(f"intermediate{0}[{counter}] = {v};")
+            counter = counter + 1
+        name = f"intermediate{0}"
+        return name
 
     def _get_var_declare_type(self, is_vector):
         return self.vector_type if is_vector else self.scalar_type
