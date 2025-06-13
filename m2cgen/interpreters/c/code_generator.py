@@ -49,11 +49,19 @@ class CCodeGenerator(CLikeCodeGenerator):
         if size < 2:
             matches = re.findall(r'var(\d+)', source_var)
             self.add_code_line(f"output[0] = var{matches[0]};")
-            exit()
+            return
 
-        for i in range(size):
+        for i in range(size - 1):
             matches = re.findall(r'var(\d+)', source_var)
-            self.add_code_line(f"output[{i}] = var{matches[0]}[{i}];")
+            if matches:
+                self.add_code_line(f"output[{i}] = var{matches[0]}[{i}];")
+                return
+            matches = re.findall(r'intermediate(\d+)', source_var)
+            if matches:
+                self.add_code_line(f"output[{i}] = intermediate{matches[0]}[{i}];")
+                return
+        self.add_code_line(f"memcpy({target_var}, {source_var}, "
+                           f"{size} * sizeof(double));")
 
     def add_dependency(self, dep):
         self.prepend_code_line(f"#include {dep}")
