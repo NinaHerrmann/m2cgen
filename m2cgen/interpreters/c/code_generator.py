@@ -4,15 +4,35 @@ from m2cgen.interpreters.code_generator import CLikeCodeGenerator, CodeTemplate
 
 
 class CCodeGenerator(CLikeCodeGenerator):
-    tpl_scalar_var_declare = CodeTemplate("double {var_name};")
-    tpl_vector_var_declare = CodeTemplate("double {var_name}[{size}];")
+    def __init__(self, indent):
+        self.quantize = False
+        super().__init__(indent)
 
-    scalar_type = "double"
-    vector_type = "double *"
+    def set_quantization(self, quantize:object):
+        if quantize:
+            self.quantize = True
+            self.strategy = quantize.strategy
+            self.bins = quantize.n_bins
+        else:
+            self.quantize = False
+
+    # TODO: is merely a first prototype - different quantization methods (uint_8 etc.
+    @property
+    def scalar_type(self):
+        return "int" if self.quantize else "double"
+    @property
+    def vector_type(self):
+        return "int *" if self.quantize else "double *"
+
+    @property
+    def tpl_scalar_var_declare(self):
+        return CodeTemplate("int {var_name};") if self.quantize else CodeTemplate("double {var_name};")
+    @property
+    def tpl_vector_var_declare(self):
+        return CodeTemplate("int {var_name}[{size}];") if self.quantize else CodeTemplate("double {var_name}[{size}];")
 
     def add_function_def(self, name, args, is_scalar_output):
         return_type = self.scalar_type if is_scalar_output else "void"
-
         func_args = ", ".join([
             f"{self._get_var_declare_type(is_vector)} {n}"
             for is_vector, n in args])
@@ -61,7 +81,7 @@ class CCodeGenerator(CLikeCodeGenerator):
                 self.add_code_line(f"output[{i}] = intermediate{matches[0]}[{i}];")
                 return
         self.add_code_line(f"memcpy({target_var}, {source_var}, "
-                           f"{size} * sizeof(double));")
+                           f"{size} * sizeof({scalar_type}));")
 
     def add_dependency(self, dep):
         self.prepend_code_line(f"#include {dep}")

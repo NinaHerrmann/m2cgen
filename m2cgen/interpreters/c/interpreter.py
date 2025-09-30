@@ -39,6 +39,9 @@ class CInterpreter(ImperativeToCodeInterpreter,
         cg = CCodeGenerator(indent=indent)
         super().__init__(cg, *args, **kwargs)
 
+    def set_quantization(self, quantize:object):
+        self._cg.set_quantization(quantize)
+
     def interpret(self, expr):
         self._cg.reset_state()
         self._reset_reused_expr_cache()
